@@ -20,6 +20,7 @@ def get_db():
 async def root():
     return {"message": "Hello World"}
 
+# Criar Cliente
 @app.post(
   '/cliente/', 
   response_model=ClienteBase,
@@ -35,6 +36,7 @@ def criar_cliente(
   db.refresh(db_cliente)
   return db_cliente   
 
+# Listar Clientes
 @app.get(
   '/cliente/', 
   response_model=list[ClientePublic],
@@ -46,6 +48,7 @@ def listar_clientes(
   clientes = db.query(Cliente).all()
   return clientes
 
+# Atulizar Cliente
 @app.put("/clientes/{cliente_id}", response_model=ClientePublic)
 def atualizar_cliente(
   cliente_id: int,
@@ -73,3 +76,22 @@ def atualizar_cliente(
   db.commit()
   db.refresh(cliente_db)
   return cliente_db
+
+@app.delete(
+    '/cliente/{cliente_id}',
+    status_code=HTTPStatus.OK,
+)
+def deletar_cliente(
+  cliente_id: int,
+  db: Session = Depends(get_db)
+):
+  cliente_db = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+  if not cliente_db:
+    raise HTTPException(
+      status_code=HTTPStatus.NOT_FOUND, 
+      detail="Cliente não encontrado"
+    )
+  
+  db.delete(cliente_db)
+  db.commit()
+  return
