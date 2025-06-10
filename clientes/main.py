@@ -34,3 +34,14 @@ def criar_cliente(
   db.commit()
   db.refresh(db_cliente)
   return db_cliente   
+
+@app.get(
+  '/cliente/', 
+  response_model=list[ClientePublic],
+  status_code=HTTPStatus.OK
+)
+def listar_clientes(
+  db: Session = Depends(get_db)
+):
+  clientes = db.query(Cliente).all()
+  return clientes
