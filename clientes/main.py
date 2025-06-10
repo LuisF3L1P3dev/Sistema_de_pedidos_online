@@ -45,3 +45,19 @@ def listar_clientes(
 ):
   clientes = db.query(Cliente).all()
   return clientes
+
+@app.put("/clientes/{cliente_id}", response_model=ClientePublic)
+def atualizar_cliente(
+  cliente_id: int,
+  cliente_atualizado: ClienteCreate,
+  db: Session = Depends(get_db)
+):
+  cliente_db = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+  if not cliente_db:
+    raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Cliente não encontrado")
+  
+  cliente_db.nome = cliente_atualizado.nome
+  cliente_db.email = cliente_atualizado.email
+  db.commit()
+  db.refresh(cliente_db)
+  return cliente_db
