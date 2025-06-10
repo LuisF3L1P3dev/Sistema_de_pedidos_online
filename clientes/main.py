@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from http import HTTPStatus
 from sqlalchemy.orm import Session
 from models import Cliente
 from schemas import ClienteBase, ClienteCreate, ClientePublic
@@ -19,12 +20,16 @@ def get_db():
 async def root():
     return {"message": "Hello World"}
 
-@app.post('/cliente/', response_model=ClienteBase)
+@app.post(
+  '/cliente/', 
+  response_model=ClienteBase,
+  status_code=HTTPStatus.CREATED
+)
 def criar_cliente(
   cliente: ClienteCreate,
   db: Session = Depends(get_db)
 ):
-  db_cliente = ClienteBase(**cliente.dict())
+  db_cliente = Cliente(**cliente.dict())
   db.add(db_cliente)
   db.commit()
   db.refresh(db_cliente)
