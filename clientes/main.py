@@ -1,10 +1,31 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import Cliente
+from schemas import ClienteBase, ClienteCreate, ClientePublic
+from database import Base, SessionLocal, engine 
+Base.metadata.create_all(bind=engine)
 
-# from clientes.schemas import ClientePublic
+app = FastAPI(title='Clientes')
 
-app = FastAPI()
-
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+@app.post('/cliente/', response_model=ClienteBase)
+def criar_cliente(
+  cliente: ClienteCreate,
+  db: Session = Depends(get_db)
+):
+  db_cliente = ClienteBase(**cliente.dict())
+  db.add(db_cliente)
+  db.commit()
+  db.refresh(db_cliente)
+  return db_cliente   
