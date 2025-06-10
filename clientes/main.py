@@ -56,6 +56,18 @@ def atualizar_cliente(
   if not cliente_db:
     raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Cliente não encontrado")
   
+  # Verifica se outro cliente já usa o mesmo e-mail
+  email_em_uso = (
+      db.query(Cliente)
+      .filter(Cliente.email == cliente_atualizado.email, Cliente.id != cliente_id)
+      .first()
+  )
+  if email_em_uso:
+      raise HTTPException(
+          status_code=HTTPStatus.CONFLICT,
+          detail="Este e-mail já está sendo usado por outro cliente.",
+      )
+    
   cliente_db.nome = cliente_atualizado.nome
   cliente_db.email = cliente_atualizado.email
   db.commit()
