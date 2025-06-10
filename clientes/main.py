@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from clientes.schemas import ClientePublic
+# from clientes.schemas import ClientePublic
 
 app = FastAPI()
 
