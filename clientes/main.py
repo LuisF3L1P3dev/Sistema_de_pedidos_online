@@ -6,7 +6,7 @@ from schemas import ClienteBase, ClienteCreate, ClientePublic
 from database import Base, SessionLocal, engine 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title='Clientes')
+app = FastAPI(title='Microsserviço de Clientes')
 
 # Dependency
 def get_db():
