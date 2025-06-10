@@ -4,10 +4,13 @@ from typing import List
 from database import SessionLocal, engine, Base
 from models import Pedidos
 from schemas import PedidoCreate, PedidoResponse
+from grpc_client import ClienteGRPCClient
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Microserviço de Pedidos")
+
+cliente_grpc = ClienteGRPCClient()
 
 def get_db():
     db = SessionLocal()
@@ -18,6 +21,10 @@ def get_db():
 
 @app.post("/pedidos/", response_model=PedidoResponse)
 def criar_pedido(pedido: PedidoCreate, db: Session = Depends(get_db)):
+
+    cliente = cliente_grpc.get_cliente(pedido.id_cliente)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado via gRPC")
     
     novo_pedido = Pedidos(
         id_cliente=pedido.id_cliente,
