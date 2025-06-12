@@ -1,16 +1,20 @@
-from fastapi import FastAPI, HTTPException, Depends, Path
+from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from database import SessionLocal, engine, Base
 from models import Pedidos
 from schemas import PedidoCreate, PedidoResponse
 from grpc_client import ClienteGRPCClient
+from grpc_client_produto import ProdutoGRPCClient
+
+import clientes_pb2, clientes_pb2_grpc, produtos_pb2, produtos_pb2_grpc
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Microserviço de Pedidos")
 
 cliente_grpc = ClienteGRPCClient()
+produto_grpc = ProdutoGRPCClient()
 
 def get_db():
     db = SessionLocal()
@@ -21,14 +25,23 @@ def get_db():
 
 @app.post("/pedidos/", response_model=PedidoResponse)
 def criar_pedido(pedido: PedidoCreate, db: Session = Depends(get_db)):
-
     cliente = cliente_grpc.get_cliente(pedido.id_cliente)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente não encontrado via gRPC")
-    
+
+    for produto_id in pedido.produtos:
+        produto = produto_grpc.get_produto(produto_id)
+        if not produto:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Produto com ID {produto_id} não encontrado via gRPC"
+            )
+
+    produtos_ids = [int(pid) for pid in pedido.produtos]
+
     novo_pedido = Pedidos(
         id_cliente=pedido.id_cliente,
-        produtos=pedido.produtos,
+        produtos=produtos_ids,
         total=pedido.total,
         status="pendente"
     )
@@ -48,10 +61,18 @@ def atualizar_pedido(pedido_id: int, pedido_atualizado: PedidoCreate, db: Sessio
     if not pedido_db:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
+    for produto_id in pedido_atualizado.produtos:
+        produto = produto_grpc.get_produto(produto_id)
+        if not produto:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Produto com ID {produto_id} não encontrado via gRPC"
+            )
+
     pedido_db.id_cliente = pedido_atualizado.id_cliente
-    pedido_db.produtos = pedido_atualizado.produtos
+    pedido_db.produtos = [int(pid) for pid in pedido_atualizado.produtos]
     pedido_db.total = pedido_atualizado.total
-    pedido_db.status = "pendente"  
+    pedido_db.status = "pendente"
     db.commit()
     db.refresh(pedido_db)
     return pedido_db

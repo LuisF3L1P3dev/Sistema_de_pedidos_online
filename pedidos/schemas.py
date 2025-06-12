@@ -1,17 +1,15 @@
-from pydantic import BaseModel
-from typing import List, Any
+from pydantic import BaseModel, Field
+from typing import List
 
 class PedidoCreate(BaseModel):
     id_cliente: int
-    produtos: List[Any]  
+    produtos: List[int]  
     total: float
 
 class PedidoResponse(BaseModel):
     id: int
-    id_cliente: int
-    produtos: List[Any]
-    total: float
     status: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
