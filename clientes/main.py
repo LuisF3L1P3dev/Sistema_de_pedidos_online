@@ -5,8 +5,18 @@ from models import Cliente
 from schemas import ClienteBase, ClienteCreate, ClientePublic
 from database import Base, SessionLocal, engine 
 Base.metadata.create_all(bind=engine)
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title='Microsserviço de Clientes')
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dependency
 def get_db():
