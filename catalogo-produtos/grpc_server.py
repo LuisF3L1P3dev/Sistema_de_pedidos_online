@@ -4,22 +4,25 @@ import time
 
 from produtos_pb import produtos_pb2, produtos_pb2_grpc
 
-PRODUTOS_DB = {
-    1: {"id": 1, "nome": "Camisa", "preco": 80.0},
-    2: {"id": 2, "nome": "Calça", "preco": 70.0},
-}
+from database import SessionLocal
+from models import Produto
 
 class ProdutoService(produtos_pb2_grpc.ProdutoServiceServicer):
     def GetProduto(self, request, context):
         produto_id = request.id
-        if produto_id in PRODUTOS_DB:
-            produto = PRODUTOS_DB[produto_id]
-            return produtos_pb2.ProdutoResponse(
-                id=produto["id"],
-                nome=produto["nome"],
-                preco=produto["preco"]
-            )
-        context.abort(grpc.StatusCode.NOT_FOUND, 'Produto não encontrado')
+        db = SessionLocal()
+        try:
+            produto = db.query(Produto).filter(Produto.id == produto_id).first()
+            if produto:
+                return produtos_pb2.ProdutoResponse(
+                    id=produto.id,
+                    nome=produto.nome,
+                    preco=produto.preco
+                )
+            else:
+                context.abort(grpc.StatusCode.NOT_FOUND, f'Produto com ID {produto_id} não encontrado via gRPC')
+        finally:
+            db.close()
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

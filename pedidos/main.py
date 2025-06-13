@@ -6,12 +6,22 @@ from models import Pedidos
 from schemas import PedidoCreate, PedidoResponse
 from grpc_client import ClienteGRPCClient
 from grpc_client_produto import ProdutoGRPCClient
+from fastapi.middleware.cors import CORSMiddleware
 
 import clientes_pb2, clientes_pb2_grpc, produtos_pb2, produtos_pb2_grpc
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Microserviço de Pedidos")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 cliente_grpc = ClienteGRPCClient()
 produto_grpc = ProdutoGRPCClient()
@@ -29,26 +39,38 @@ def criar_pedido(pedido: PedidoCreate, db: Session = Depends(get_db)):
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente não encontrado via gRPC")
 
-    for produto_id in pedido.produtos:
-        produto = produto_grpc.get_produto(produto_id)
+    for item in pedido.produtos:
+        produto = produto_grpc.get_produto(item.produto_id)
         if not produto:
             raise HTTPException(
                 status_code=404,
-                detail=f"Produto com ID {produto_id} não encontrado via gRPC"
+                detail=f"Produto com ID {item.produto_id} não encontrado via gRPC"
+            )
+        if item.quantidade <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Quantidade inválida para produto ID {item.produto_id}"
             )
 
-    produtos_ids = [int(pid) for pid in pedido.produtos]
+    total_calculado = sum(
+        produto_grpc.get_produto(item.produto_id)['preco'] * item.quantidade
+        for item in pedido.produtos
+    )
+
+    produtos_para_salvar = [item.dict() for item in pedido.produtos]
 
     novo_pedido = Pedidos(
         id_cliente=pedido.id_cliente,
-        produtos=produtos_ids,
-        total=pedido.total,
+        produtos=produtos_para_salvar,
+        total=total_calculado,
         status="pendente"
     )
+
     db.add(novo_pedido)
     db.commit()
     db.refresh(novo_pedido)
     return novo_pedido
+
 
 @app.get("/pedidos/", response_model=List[PedidoResponse])
 def listar_pedidos(db: Session = Depends(get_db)):
