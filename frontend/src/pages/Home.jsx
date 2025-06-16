@@ -5,6 +5,7 @@ export default function Home() {
   const [pedidos, setPedidos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [produtos, setProdutos] = useState([]);
+  const [editandoId, setEditandoId] = useState(null);
   const [novoPedido, setNovoPedido] = useState({
     id_cliente: '',
     produtos: [{ produto_id: '', quantidade: 1 }],
@@ -19,7 +20,6 @@ export default function Home() {
   const fetchPedidos = async () => {
     try {
       const response = await axios.get('http://localhost:8002/pedidos/');
-      console.log("Pedidos carregados:", response.data);
       setPedidos(response.data);
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error);
@@ -57,9 +57,18 @@ export default function Home() {
     });
   };
 
+  const removerProduto = (index) => {
+    if (novoPedido.produtos.length <= 1) {
+      alert('O pedido precisa ter pelo menos 1 produto.');
+      return;
+    }
+    const produtosAtualizados = [...novoPedido.produtos];
+    produtosAtualizados.splice(index, 1);
+    setNovoPedido({ ...novoPedido, produtos: produtosAtualizados });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       let total = 0;
       novoPedido.produtos.forEach(({ produto_id, quantidade }) => {
@@ -69,20 +78,55 @@ export default function Home() {
         }
       });
 
-      await axios.post('http://localhost:8002/pedidos/', {
+      const payload = {
         id_cliente: parseInt(novoPedido.id_cliente),
         produtos: novoPedido.produtos.map(p => ({
           produto_id: parseInt(p.produto_id),
           quantidade: p.quantidade,
         })),
         total: total,
-      });
+      };
+
+      if (editandoId) {
+        await axios.put(`http://localhost:8002/pedidos/${editandoId}`, payload);
+      } else {
+        await axios.post('http://localhost:8002/pedidos/', payload);
+      }
 
       setNovoPedido({ id_cliente: '', produtos: [{ produto_id: '', quantidade: 1 }] });
+      setEditandoId(null);
       fetchPedidos();
     } catch (error) {
-      console.error('Erro ao criar pedido:', error);
-      alert('Erro ao criar pedido.');
+      console.error('Erro ao salvar pedido:', error);
+      alert('Erro ao salvar pedido.');
+    }
+  };
+
+  const handleEditar = (pedido) => {
+    setEditandoId(pedido.id);
+    setNovoPedido({
+      id_cliente: pedido.id_cliente,
+      produtos: pedido.produtos.map(p => ({
+        produto_id: String(p.produto_id),
+        quantidade: p.quantidade,
+      })),
+    });
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setNovoPedido({ id_cliente: '', produtos: [{ produto_id: '', quantidade: 1 }] });
+  };
+
+  const handleDeletar = async (id) => {
+    if (window.confirm('Tem certeza que deseja deletar este pedido?')) {
+      try {
+        await axios.delete(`http://localhost:8002/pedidos/${id}`);
+        fetchPedidos();
+      } catch (error) {
+        console.error('Erro ao deletar pedido:', error);
+        alert('Erro ao deletar pedido.');
+      }
     }
   };
 
@@ -105,24 +149,42 @@ export default function Home() {
       ) : (
         <ul className="mb-8">
           {pedidos.map((pedido) => (
-            <li key={pedido.id} className="mb-2 p-2 border rounded">
-              <strong>Cliente:</strong> {getClienteNome(pedido.id_cliente)} |{' '}
-              <strong>Produtos:</strong>{' '}
-              {Array.isArray(pedido.produtos)
-                ? pedido.produtos
-                    .map(p => {
-                      const nome = getProdutoNome(p.produto_id);
-                      return `${nome} (x${p.quantidade})`;
-                    })
-                    .join(', ')
-                : 'Produtos inválidos'} |{' '}
-              <strong>Total:</strong> R$ {pedido.total ? pedido.total.toFixed(2) : '0.00'}
+            <li key={pedido.id} className="mb-2 p-2 border rounded flex justify-between items-center">
+              <div>
+                <strong>Cliente:</strong> {getClienteNome(pedido.id_cliente)} |{' '}
+                <strong>Produtos:</strong>{' '}
+                {Array.isArray(pedido.produtos)
+                  ? pedido.produtos
+                      .map(p => {
+                        const nome = getProdutoNome(p.produto_id);
+                        return `${nome} (x${p.quantidade})`;
+                      })
+                      .join(', ')
+                  : 'Produtos inválidos'} |{' '}
+                <strong>Total:</strong> R$ {pedido.total ? pedido.total.toFixed(2) : '0.00'}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEditar(pedido)}
+                  className="bg-yellow-400 text-black p-1 px-3 rounded hover:bg-yellow-500"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDeletar(pedido.id)}
+                  className="bg-red-500 text-white p-1 px-3 rounded hover:bg-red-600"
+                >
+                  Deletar
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
 
-      <h2 className="text-xl font-semibold mb-2">Novo Pedido</h2>
+      <h2 className="text-xl font-semibold mb-2">
+        {editandoId ? 'Editar Pedido' : 'Novo Pedido'}
+      </h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
         <select
           name="id_cliente"
@@ -140,7 +202,7 @@ export default function Home() {
         </select>
 
         {novoPedido.produtos.map((item, index) => (
-          <div key={index} className="flex gap-2">
+          <div key={index} className="flex gap-2 items-center">
             <select
               value={item.produto_id}
               onChange={(e) => handleProdutoChange(index, 'produto_id', e.target.value)}
@@ -162,6 +224,16 @@ export default function Home() {
               className="p-2 border rounded w-24"
               required
             />
+            {editandoId !== null && novoPedido.produtos.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removerProduto(index)}
+                className="bg-red-600 text-white p-2 rounded hover:bg-red-700"
+                title="Remover Produto"
+              >
+                X
+              </button>
+            )}
           </div>
         ))}
 
@@ -177,8 +249,18 @@ export default function Home() {
           type="submit"
           className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
         >
-          Cadastrar Pedido
+          {editandoId ? 'Atualizar Pedido' : 'Cadastrar Pedido'}
         </button>
+
+        {editandoId && (
+          <button
+            type="button"
+            onClick={cancelarEdicao}
+            className="bg-gray-300 text-black p-2 rounded hover:bg-gray-400"
+          >
+            Cancelar Edição
+          </button>
+        )}
       </form>
     </div>
   );

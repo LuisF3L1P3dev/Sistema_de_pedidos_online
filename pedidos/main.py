@@ -83,21 +83,26 @@ def atualizar_pedido(pedido_id: int, pedido_atualizado: PedidoCreate, db: Sessio
     if not pedido_db:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
-    for produto_id in pedido_atualizado.produtos:
-        produto = produto_grpc.get_produto(produto_id)
+    for item in pedido_atualizado.produtos:
+        produto = produto_grpc.get_produto(item.produto_id)
         if not produto:
             raise HTTPException(
                 status_code=404,
-                detail=f"Produto com ID {produto_id} não encontrado via gRPC"
+                detail=f"Produto com ID {item.produto_id} não encontrado via gRPC"
             )
 
     pedido_db.id_cliente = pedido_atualizado.id_cliente
-    pedido_db.produtos = [int(pid) for pid in pedido_atualizado.produtos]
+    pedido_db.produtos = [
+        {"produto_id": p.produto_id, "quantidade": p.quantidade}
+        for p in pedido_atualizado.produtos
+    ]
     pedido_db.total = pedido_atualizado.total
     pedido_db.status = "pendente"
+
     db.commit()
     db.refresh(pedido_db)
     return pedido_db
+
 
 @app.delete("/pedidos/{pedido_id}", status_code=204)
 def deletar_pedido(pedido_id: int, db: Session = Depends(get_db)):
