@@ -15,10 +15,12 @@ interface ProductFormProps {
 
 const ProductForm = ({ isOpen, onClose, onSubmit, initialData }: ProductFormProps) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: ''
+    nome: '',
+    descricao: '',
+    preco: '',
+    estoque: '',
+    ativo: true,
+    categoria: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -26,17 +28,21 @@ const ProductForm = ({ isOpen, onClose, onSubmit, initialData }: ProductFormProp
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name,
-        description: initialData.description,
-        price: initialData.price.toString(),
-        stock: initialData.stock.toString()
+        nome: initialData.nome,
+        descricao: initialData.descricao || '',
+        preco: initialData.preco.toString(),
+        estoque: initialData.estoque?.toString() || '',
+        ativo: true, 
+        categoria: ''
       });
     } else {
       setFormData({
-        name: '',
-        description: '',
-        price: '',
-        stock: ''
+        nome: '',
+        descricao: '',
+        preco: '',
+        estoque: '',
+        ativo: true,
+        categoria: ''
       });
     }
     setErrors({});
@@ -44,12 +50,8 @@ const ProductForm = ({ isOpen, onClose, onSubmit, initialData }: ProductFormProp
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
-    if (!formData.description.trim()) newErrors.description = 'Descrição é obrigatória';
-    if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Preço deve ser maior que zero';
-    if (!formData.stock || parseInt(formData.stock) < 0) newErrors.stock = 'Estoque deve ser maior ou igual a zero';
-
+    if (!formData.nome.trim()) newErrors.nome = 'Nome é obrigatório';
+    if (!formData.preco || parseFloat(formData.preco) <= 0) newErrors.preco = 'Preço inválido';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,16 +60,16 @@ const ProductForm = ({ isOpen, onClose, onSubmit, initialData }: ProductFormProp
     e.preventDefault();
     if (validate()) {
       onSubmit({
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock)
+        nome: formData.nome,
+        descricao: formData.descricao,
+        preco: parseFloat(formData.preco),
+        estoque: formData.estoque ? parseInt(formData.estoque) : 0,
       });
       onClose();
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -83,37 +85,33 @@ const ProductForm = ({ isOpen, onClose, onSubmit, initialData }: ProductFormProp
       <form onSubmit={handleSubmit}>
         <Input
           label="Nome"
-          value={formData.name}
-          onChange={(e) => handleInputChange('name', e.target.value)}
-          error={errors.name}
-          placeholder="Digite o nome do produto"
+          value={formData.nome}
+          onChange={(e) => handleChange('nome', e.target.value)}
+          error={errors.nome}
         />
-        
         <Input
           label="Descrição"
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          error={errors.description}
-          placeholder="Digite a descrição do produto"
+          value={formData.descricao}
+          onChange={(e) => handleChange('descricao', e.target.value)}
         />
-        
         <Input
           label="Preço"
           type="number"
           step="0.01"
-          value={formData.price}
-          onChange={(e) => handleInputChange('price', e.target.value)}
-          error={errors.price}
-          placeholder="0.00"
+          value={formData.preco}
+          onChange={(e) => handleChange('preco', e.target.value)}
+          error={errors.preco}
         />
-        
         <Input
           label="Estoque"
           type="number"
-          value={formData.stock}
-          onChange={(e) => handleInputChange('stock', e.target.value)}
-          error={errors.stock}
-          placeholder="0"
+          value={formData.estoque}
+          onChange={(e) => handleChange('estoque', e.target.value)}
+        />
+        <Input
+          label="Categoria"
+          value={formData.categoria}
+          onChange={(e) => handleChange('categoria', e.target.value)}
         />
 
         <div className="flex justify-end space-x-3 mt-6">

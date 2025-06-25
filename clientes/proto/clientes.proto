@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package clientes;
+
+service ClienteService {
+  rpc GetCliente (ClienteRequest) returns (ClienteResponse);
+}
+
+message ClienteRequest {
+  int32 id = 1;
+}
+
+message ClienteResponse {
+  int32 id = 1;
+  string nome = 2;
+  string email = 3;
+}

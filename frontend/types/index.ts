@@ -1,27 +1,32 @@
 export interface Product {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
+  nome: string;
+  descricao: string;
+  preco: number;
+  estoque: number;
 }
 
 export interface Client {
   id: string;
   name: string;
   email: string;
-  phone: string;
 }
 
 export interface Order {
-  id: string;
-  clientId: string;
-  productId: string;
-  quantity: number;
-  totalPrice: number;
-  createdAt: string;
+  id: number;
+  id_cliente: number;
+  produtos: {
+    produto_id: number;
+    quantidade: number;
+  }[];
+  total: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+
   client?: Client;
   product?: Product;
+  quantity?: number; 
 }
 
 export interface FormProps {

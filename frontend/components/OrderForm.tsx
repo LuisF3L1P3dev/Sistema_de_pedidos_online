@@ -58,8 +58,8 @@ const OrderForm = ({ isOpen, onClose, onSubmit, clients, products, initialData }
     if (!formData.productId) newErrors.productId = 'Produto é obrigatório';
     if (!formData.quantity || parseInt(formData.quantity) <= 0) newErrors.quantity = 'Quantidade deve ser maior que zero';
     
-    if (selectedProduct && parseInt(formData.quantity) > selectedProduct.stock) {
-      newErrors.quantity = `Quantidade não pode ser maior que o estoque disponível (${selectedProduct.stock})`;
+    if (selectedProduct && parseInt(formData.quantity) > selectedProduct.estoque) {
+      newErrors.quantity = `Quantidade não pode ser maior que o estoque disponível (${selectedProduct.estoque})`;
     }
 
     setErrors(newErrors);
@@ -70,7 +70,7 @@ const OrderForm = ({ isOpen, onClose, onSubmit, clients, products, initialData }
     e.preventDefault();
     if (validate() && selectedProduct) {
       const quantity = parseInt(formData.quantity);
-      const totalPrice = quantity * selectedProduct.price;
+      const totalPrice = quantity * selectedProduct.preco;
       
       onSubmit({
         clientId: formData.clientId,
@@ -90,7 +90,7 @@ const OrderForm = ({ isOpen, onClose, onSubmit, clients, products, initialData }
   };
 
   const totalPrice = selectedProduct && formData.quantity 
-    ? parseInt(formData.quantity) * selectedProduct.price 
+    ? parseInt(formData.quantity) * selectedProduct.preco
     : 0;
 
   return (
@@ -135,7 +135,7 @@ const OrderForm = ({ isOpen, onClose, onSubmit, clients, products, initialData }
             <option value="">Selecione um produto</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>
-                {product.name} - R$ {product.price.toFixed(2)} (Estoque: {product.stock})
+                {product.nome} - R$ {product.preco.toFixed(2)} (Estoque: {product.estoque})
               </option>
             ))}
           </select>
@@ -154,10 +154,10 @@ const OrderForm = ({ isOpen, onClose, onSubmit, clients, products, initialData }
         {selectedProduct && formData.quantity && (
           <div className="mb-4 p-3 bg-blue-50 rounded-md">
             <p className="text-sm text-gray-700">
-              <strong>Produto:</strong> {selectedProduct.name}
+              <strong>Produto:</strong> {selectedProduct.nome}
             </p>
             <p className="text-sm text-gray-700">
-              <strong>Preço unitário:</strong> R$ {selectedProduct.price.toFixed(2)}
+              <strong>Preço unitário:</strong> R$ {selectedProduct.preco.toFixed(2)}
             </p>
             <p className="text-sm text-gray-700">
               <strong>Quantidade:</strong> {formData.quantity}
